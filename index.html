@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Live TV Channels</title>
+
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      font-family: Arial, sans-serif;
+      background: #0b0b0b;
+      color: #fff;
+      margin: 0;
+      padding: 15px;
+    }
+
+    h2 {
+      text-align: center;
+      margin-bottom: 10px;
+      font-size: 24px;
+    }
+
+    .search-container {
+      display: flex;
+      justify-content: center;
+      margin-bottom: 18px;
+    }
+
+    .search-box {
+      width: 90%;
+      max-width: 420px;
+      padding: 12px 15px;
+      border-radius: 8px;
+      border: none;
+      font-size: 15px;
+      outline: none;
+      background: #1c1c1c;
+      color: #fff;
+    }
+
+    .channel-list {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+      gap: 14px;
+    }
+
+    .channel {
+      background: #161616;
+      border-radius: 10px;
+      padding: 12px;
+      text-align: center;
+      cursor: pointer;
+      transition: 0.25s;
+      opacity: 0;
+      transform: translateY(10px);
+      animation: fadeIn 0.4s forwards;
+    }
+
+    .channel:hover {
+      background: #262626;
+      transform: translateY(-5px) scale(1.03);
+    }
+
+    .channel img {
+      width: 100%;
+      height: 95px;
+      object-fit: contain;
+      border-radius: 6px;
+    }
+
+    .channel-name {
+      margin-top: 10px;
+      font-size: 14px;
+      font-weight: 600;
+      color: #eaeaea;
+    }
+
+    @keyframes fadeIn {
+      to { opacity: 1; transform: translateY(0); }
+    }
+  </style>
+
+</head>
+<body>
+
+<h2>📺 JioTV Channels</h2>
+
+<div class="search-container">
+  <input id="search" class="search-box" type="text" placeholder="🔍 Search channels...">
+</div>
+
+<div id="channels" class="channel-list">Loading...</div>
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+  const m3uURL = "https://jiotv.diwij76343.workers.dev";
+  const container = document.getElementById("channels");
+  const searchInput = document.getElementById("search");
+
+  let channelsData = [];
+
+  fetch(m3uURL)
+    .then(res => res.text())
+    .then(text => {
+      channelsData = parseM3U(text);
+      renderChannels(channelsData);
+    })
+    .catch(err => {
+      console.error("Error loading M3U:", err);
+      container.textContent = "Failed to load channels.";
+    });
+
+  function parseM3U(text) {
+    const lines = text.split("\n");
+    const list = [];
+    let current = {};
+
+    lines.forEach(line => {
+      line = line.trim();
+
+      if (line.startsWith("#EXTINF")) {
+        const name = line.split(",").pop().trim();
+        const logo = line.match(/tvg-logo="([^"]+)"/)?.[1] || "";
+        current = { name, logo };
+      }
+
+      if (line.startsWith("#KODIPROP:inputstream.adaptive.license_key")) {
+        const key = line.split("=")[1];
+        if (key.includes(":")) {
+          const [keyId, keyVal] = key.split(":");
+          current.keyId = keyId;
+          current.key = keyVal;
+        }
+      }
+
+      if (line.startsWith("#EXTHTTP:")) {
+        const json = line.replace("#EXTHTTP:", "").trim();
+        try {
+          const obj = JSON.parse(json);
+          current.cookie = obj.cookie || "";
+        } catch {}
+      }
+
+      if (line.startsWith("http")) {
+        current.link = line;
+        list.push(current);
+        current = {};
+      }
+    });
+
+    return list;
+  }
+
+  function renderChannels(list) {
+    container.innerHTML = "";
+
+    if (!list.length) {
+      container.innerHTML = "<div>No channels found.</div>";
+      return;
+    }
+
+    list.forEach(ch => {
+      const div = document.createElement("div");
+      div.className = "channel";
+
+      div.innerHTML = `
+        <img src="${ch.logo}" alt="${ch.name}">
+        <div class="channel-name">${ch.name}</div>
+      `;
+
+      div.onclick = () => {
+        const url = new URL("player.html", window.location.href);
+        url.searchParams.set("url", ch.link);
+        if (ch.keyId && ch.key) {
+          url.searchParams.set("keyId", ch.keyId);
+          url.searchParams.set("key", ch.key);
+        }
+        if (ch.cookie) {
+          url.searchParams.set("cookie", ch.cookie);
+        }
+        url.searchParams.set("name", ch.name);
+        window.location.href = url.toString();
+      };
+
+      container.appendChild(div);
+    });
+  }
+
+  searchInput.addEventListener("input", function () {
+    const value = this.value.trim().toLowerCase();
+    if (!value) return renderChannels(channelsData);
+    renderChannels(channelsData.filter(ch => ch.name.toLowerCase().includes(value)));
+  });
+});
+</script>
+
+</body>
+</html>
