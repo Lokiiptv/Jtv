@@ -1,260 +1,645 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Live TV Channels</title>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>JioTV — Final (Numeric + Voice, Clean UI)</title>
 
-  <style>
-    * { box-sizing: border-box; }
-    body {
-      font-family: Arial, sans-serif;
-      background: #0b0b0b;
-      color: #fff;
-      margin: 0;
-      padding: 15px;
-      font-size: 20px;
-    }
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/shaka-player/4.6.0/controls.min.css">
 
-    h2 {
-      text-align: center;
-      margin-bottom: 18px;
-      font-size: 32px;
-    }
+<style>
+:root{
+  --bg:#081224; --card:#0f1726; --muted:#9aa4b2; --accent:#ff3b30; --accent-2:#ff7a5a;
+}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0;font-family:Roboto,system-ui,-apple-system,"Segoe UI",Arial;background:var(--bg);color:#eaf3ff}
+.app{max-width:1280px;margin:10px auto;padding:12px;width:calc(100% - 24px)}
+.header{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.brand{display:flex;align-items:center;gap:12px}
+.logo{width:56px;height:40px;border-radius:8px;background:linear-gradient(135deg,var(--accent),var(--accent-2));display:flex;align-items:center;justify-content:center;font-weight:700;color:#fff}
+.controls{display:flex;gap:8px;align-items:center}
+.search{padding:10px 12px;border-radius:8px;border:0;background:rgba(255,255,255,0.03);color:inherit;width:360px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:14px;margin-top:12px}
+.card{background:linear-gradient(180deg,rgba(255,255,255,0.02),transparent);padding:12px;border-radius:10px;position:relative;outline: none;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;height:180px}
+.card:focus{box-shadow:0 0 0 4px rgba(255,59,48,0.18);transform:translateY(-6px)}
+.card img{width:100%;height:100px;object-fit:contain;border-radius:8px;background:rgba(0,0,0,0.25)}
+.card .name{margin-top:8px;font-weight:700;text-align:center}
+.card .meta{font-size:12px;color:var(--muted);margin-top:6px}
 
-    .search-container {
-      display: flex;
-      justify-content: center;
-      margin-bottom: 20px;
-    }
+/* channel number badge (large left-top) */
+.ch-num{
+  position:absolute; left:8px; top:8px; background:rgba(0,0,0,0.6); color:#fff; padding:6px 8px; border-radius:8px; font-weight:700;
+  font-size:16px; z-index:4;
+}
 
-    .search-box {
-      width: 95vw;
-      max-width: 480px;
-      padding: 18px 20px;
-      border-radius: 10px;
-      border: none;
-      font-size: 20px;
-      outline: none;
-      background: #1c1c1c;
-      color: #fff;
-      margin-bottom: 10px;
-    }
+/* numeric dial overlay */
+#numDial{
+  position:fixed; left:50%; transform:translateX(-50%); bottom:18px; background:rgba(0,0,0,0.7); padding:12px 18px; border-radius:12px;
+  font-size:26px; z-index:99999; display:none; color:#fff; box-shadow:0 8px 30px rgba(0,0,0,0.6);
+}
 
-    .channel-list {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-      gap: 22px;
-    }
+/* player overlay */
+.player-wrap{display:none;position:fixed;inset:0;z-index:9999;background:#000}
+.shaka-video-container{position:absolute;inset:0}
+video{width:100%;height:100%;background:#000;object-fit:contain}
+#channelTitle{position:absolute;left:10px;top:10px;color:#fff;background:rgba(0,0,0,0.6);padding:6px 10px;border-radius:6px;z-index:1500}
+#myLogo{position:absolute;right:8px;top:8px;width:64px;height:44px;border-radius:6px;z-index:1500}
+.manual-play-button{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);padding:18px 24px;border-radius:10px;border:2px solid var(--accent);display:none;z-index:1600;background:rgba(0,0,0,0.6);font-weight:700}
+.close-btn{position:absolute;right:12px;top:12px;padding:8px 12px;border-radius:8px;background:rgba(255,255,255,0.06);border:none;color:#fff;z-index:1600;cursor:pointer}
 
-    .channel {
-      background: #161616;
-      border-radius: 14px;
-      padding: 22px 12px;
-      text-align: center;
-      cursor: pointer;
-      transition: all 0.25s ease;
-      box-shadow: 0 2px 10px rgba(0,0,0,0.3);
-      outline: none;
-      opacity: 0;
-      transform: translateY(10px);
-      animation: fadeIn 0.4s forwards;
-    }
+/* improved voice button UI */
+.voice-btn {
+  width:48px; height:48px; border-radius:50%; display:inline-flex; align-items:center; justify-content:center;
+  background:linear-gradient(135deg,var(--accent),var(--accent-2)); color:#fff; border:none; cursor:pointer; box-shadow:0 8px 20px rgba(255,59,48,0.18);
+  font-size:18px;
+}
+.voice-btn.listening {
+  animation: pulse 1s infinite;
+  box-shadow:0 0 0 8px rgba(255,59,48,0.08);
+}
+@keyframes pulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.06); }
+  100% { transform: scale(1); }
+}
 
-    .channel:focus {
-      box-shadow: 0 0 0 5px #2196f3;
-      background: #262626;
-      transform: scale(1.08);
-      z-index: 10;
-    }
+/* small mic label (for TV focus) */
+.voice-wrap { display:flex; gap:8px; align-items:center; }
+.voice-label { font-size:13px; color:var(--muted); margin-left:6px; }
 
-    .channel:hover {
-      background: #262626;
-      transform: scale(1.05);
-      box-shadow: 0 4px 15px rgba(33, 150, 243, 0.4);
-    }
+/* voice toast styling created dynamically */
 
-    .channel:active {
-      transform: scale(0.98);
-    }
-
-    .channel img {
-      width: 90%;
-      height: 120px;
-      object-fit: contain;
-      border-radius: 8px;
-      margin: 0 auto;
-      display: block;
-    }
-
-    .channel-name {
-      margin-top: 14px;
-      font-size: 18px;
-      font-weight: 700;
-      color: #eaeaea;
-      word-wrap: break-word;
-    }
-
-    @keyframes fadeIn {
-      to { opacity: 1; transform: translateY(0); }
-    }
-
-    .error-message {
-      color: #ff6b6b;
-      text-align: center;
-      padding: 20px;
-      background: #2a1a1a;
-      border-radius: 10px;
-      margin: 20px;
-    }
-
-    /* Mobile Optimization */
-    @media (max-width: 600px) {
-      body {
-        padding: 10px;
-        font-size: 16px;
-      }
-
-      h2 {
-        font-size: 24px;
-        margin-bottom: 12px;
-      }
-
-      .search-box {
-        font-size: 16px;
-        padding: 14px 16px;
-      }
-
-      .channel-list {
-        grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-        gap: 12px;
-      }
-
-      .channel {
-        padding: 16px 8px;
-      }
-
-      .channel img {
-        height: 96px;
-      }
-
-      .channel-name {
-        font-size: 15px;
-        margin-top: 10px;
-      }
-    }
-
-    /* Large Screen TV Optimization */
-    @media (min-width: 1200px) {
-      body {
-        padding: 30px;
-        font-size: 22px;
-      }
-
-      h2 {
-        font-size: 40px;
-      }
-
-      .channel-list {
-        grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-        gap: 28px;
-      }
-
-      .channel {
-        padding: 28px 14px;
-      }
-
-      .channel img {
-        height: 140px;
-      }
-
-      .channel-name {
-        font-size: 20px;
-      }
-    }
-  </style>
-
+@media (max-width:900px){
+  .grid{grid-template-columns:repeat(auto-fill,minmax(150px,1fr))}
+  .search{width:160px}
+}
+</style>
 </head>
 <body>
 
-<h2> JioTV Channels</h2>
+<div class="app" id="app">
+  <div class="header">
+    <div class="brand">
+      <div class="logo">TV</div>
+      <div>
+        <div style="font-weight:700;font-size:18px">JioTV — Clean UI</div>
+        <div style="font-size:12px;color:var(--muted)">Use D-pad, numbers or Voice · Back closes player</div>
+      </div>
+    </div>
 
-<div class="search-container">
-  <input id="search" class="search-box" type="text" placeholder=" Search channels...">
+    <div class="controls">
+      <input id="search" class="search" placeholder="Search channels...">
+      <!-- improved voice button -->
+      <div class="voice-wrap" role="button" aria-label="Voice search">
+        <button id="voiceBtn" class="voice-btn" title="Voice search (press)"></button>
+        <div class="voice-label" id="voiceLabel">Voice</div>
+      </div>
+    </div>
+  </div>
+
+  <div id="skeletons" class="skeleton-grid" style="display:none">
+    <div class="skel"></div><div class="skel"></div><div class="skel"></div><div class="skel"></div>
+  </div>
+
+  <div id="channels" class="grid" tabindex="0" aria-live="polite">Loading channels…</div>
 </div>
 
-<div id="channels" class="channel-list">Loading...</div>
+<div id="numDial" aria-hidden="true"></div>
+
+<!-- PLAYER overlay -->
+<div class="player-wrap" id="playerWrap" role="region" aria-label="player">
+  <div class="shaka-video-container youtube-theme" data-shaka-player>
+    <video id="playerVideo" autoplay muted playsinline preload="auto"></video>
+    <div id="channelTitle"></div>
+    <img id="myLogo" src="">
+    <div id="manualPlayButton" class="manual-play-button"> Click to Play</div>
+  </div>
+  <button class="close-btn" id="closePlayer">Close </button>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/shaka-player/4.6.0/shaka-player.ui.min.js"></script>
 
 <script>
-document.addEventListener("DOMContentLoaded", function () {
-  const apiURL = "https://jiotv.diwij76343.workers.dev";   // NEW JSON API
-  const container = document.getElementById("channels");
-  const searchInput = document.getElementById("search");
+/* ===========================
+   Config & state
+   =========================== */
+const API = "https://jiotv.diwij76343.workers.dev";
+let channels = [];
+let filtered = [];
+let focusedIndex = 0;
+let numericBuffer = "";
+let numericTimer = null;
+const numericTimeout = 2000;
 
-  let channelsData = [];
+// DOM
+const channelsEl = document.getElementById('channels');
+const searchEl = document.getElementById('search');
+const numDial = document.getElementById('numDial');
+const playerWrap = document.getElementById('playerWrap');
+const playerVideo = document.getElementById('playerVideo');
+const manualPlayButton = document.getElementById('manualPlayButton');
+const channelTitle = document.getElementById('channelTitle');
+const myLogo = document.getElementById('myLogo');
+const closePlayer = document.getElementById('closePlayer');
+const voiceBtn = document.getElementById('voiceBtn');
+const voiceLabel = document.getElementById('voiceLabel');
 
-  // Fetch JSON
-  fetch(apiURL)
-    .then(res => res.json())
-    .then(json => {
-      channelsData = json;
-      renderChannels(json);
-    })
-    .catch(err => {
-      console.error("Error loading JSON:", err);
-      container.textContent = "Failed to load channels.";
-    });
+// localStorage helpers (favorites/recent kept but no UI overlay)
+const favKey = "jtv_favs_v1";
+const recentKey = "jtv_recent_v1";
+function getFavs(){ try{return JSON.parse(localStorage.getItem(favKey)||"[]")}catch(e){return[]} }
+function setFavs(a){ localStorage.setItem(favKey, JSON.stringify(a)); }
+function toggleFav(id){ const f=getFavs(); if(f.includes(id)) setFavs(f.filter(x=>x!==id)); else { f.unshift(id); setFavs(f.slice(0,50)); } }
+function getRecent(){ try{return JSON.parse(localStorage.getItem(recentKey)||"[]")}catch(e){return[]} }
+function pushRecent(ch){ const r=getRecent(); const ex=r.find(x=>x.id===ch.id); if(ex) r.splice(r.indexOf(ex),1); r.unshift({id:ch.id,name:ch.name,logo:ch.logo,ts:Date.now(),link:ch.link}); localStorage.setItem(recentKey, JSON.stringify(r.slice(0,8))); }
 
-  function renderChannels(list) {
-    container.innerHTML = "";
+// theme small
+if(localStorage.getItem('tv_theme')==='light') document.documentElement.classList.add('light');
 
-    if (!list.length) {
-      container.innerHTML = "<div>No channels found.</div>";
-      return;
-    }
+/* -------------------------
+   Load channels
+   ------------------------- */
+async function loadChannels(){
+  document.getElementById('skeletons').style.display='grid';
+  channelsEl.style.display='none';
+  try{
+    const res = await fetch(API);
+    channels = await res.json();
+    channels = channels.map((c,i)=>({...c, id: c.id || ('ch_'+i)}));
+    filtered = channels.slice();
+    renderGrid();
+    setTimeout(()=>{ focusCard(0); }, 200);
+  }catch(err){
+    channelsEl.innerHTML = '<div style="padding:14px;color:#ffb3b3">Failed to load channels</div>';
+    console.error(err);
+  }finally{
+    document.getElementById('skeletons').style.display='none';
+    channelsEl.style.display='grid';
+  }
+}
 
-    list.forEach(ch => {
-      const div = document.createElement("div");
-      div.className = "channel";
+/* -------------------------
+   Search filtering
+   ------------------------- */
+searchEl.addEventListener('input', ()=>{
+  const q = (searchEl.value||'').trim().toLowerCase();
+  filtered = channels.filter(c => !q || (c.name||'').toLowerCase().includes(q));
+  renderGrid();
+});
 
-      div.innerHTML = `
-        <img src="${ch.logo}" alt="${ch.name}">
-        <div class="channel-name">${ch.name}</div>
-      `;
+/* -------------------------
+   Render grid with channel numbers
+   ------------------------- */
+function renderGrid(){
+  channelsEl.innerHTML = '';
+  filtered.forEach((ch, idx) => {
+    const card = document.createElement('div');
+    card.className = 'card';
+    card.tabIndex = 0;
+    const chNum = idx + 1;
+    card.innerHTML = `
+      <div class="ch-num">${chNum}</div>
+      <img src="${ch.logo || ''}" alt="${ch.name || ''}">
+      <div class="name">${ch.name || ''}</div>
+      <div class="meta">${ch.category || ''}</div>
+    `;
+    card.dataset.index = idx;
+    card.addEventListener('focus', ()=>{ focusedIndex = idx; });
+    card.addEventListener('keydown', (e)=>{ handleCardKey(e, idx); });
+    card.addEventListener('click', ()=>{ playChannelByIndex(idx); });
+    channelsEl.appendChild(card);
+  });
+  focusCard(Math.min(focusedIndex, Math.max(0, filtered.length-1)));
+}
 
-      div.onclick = () => {
-        const url = new URL("player.html", window.location.href);
-        url.searchParams.set("url", ch.link);
+/* -------------------------
+   Focus navigation (D-pad)
+   ------------------------- */
+function focusCard(i){
+  const cards = channelsEl.querySelectorAll('.card');
+  if(!cards.length) return;
+  i = Math.max(0, Math.min(i, cards.length-1));
+  const el = cards[i];
+  if(el){ el.focus(); focusedIndex = i; }
+}
+function columnsCount(){
+  const sample = channelsEl.querySelector('.card');
+  if(!sample) return 1;
+  const cardW = sample.getBoundingClientRect().width;
+  const gridW = channelsEl.getBoundingClientRect().width;
+  return Math.max(1, Math.round(gridW / cardW));
+}
 
-        // DRM clearkey support
-        if (ch.drmLicense && ch.drmLicense.includes(":")) {
-          const [keyId, key] = ch.drmLicense.split(":");
-          url.searchParams.set("keyId", keyId.trim());
-          url.searchParams.set("key", key.trim());
-        }
-
-        if (ch.cookie) url.searchParams.set("cookie", ch.cookie);
-        url.searchParams.set("name", ch.name);
-
-        window.location.href = url.toString();
-      };
-
-      container.appendChild(div);
-    });
+/* keyboard global handling */
+document.addEventListener('keydown', (e)=>{
+  // numeric dial
+  if (/^[0-9]$/.test(e.key)) {
+    e.preventDefault();
+    numericBuffer += e.key;
+    showNumDial(numericBuffer);
+    if(numericTimer) clearTimeout(numericTimer);
+    numericTimer = setTimeout(()=>{ processNumericBuffer(); }, numericTimeout);
+    return;
   }
 
-  // Search filter
-  searchInput.addEventListener("input", function () {
-    const value = this.value.trim().toLowerCase();
-    if (!value) return renderChannels(channelsData);
-    renderChannels(
-      channelsData.filter(ch =>
-        ch.name.toLowerCase().includes(value)
-      )
-    );
-  });
-});
-</script>
+  // D-pad
+  const key = e.key;
+  if(['ArrowLeft','ArrowRight','ArrowUp','ArrowDown'].includes(key)){
+    e.preventDefault();
+    const cols = columnsCount();
+    let next = focusedIndex;
+    if(key === 'ArrowLeft') next = focusedIndex - 1;
+    if(key === 'ArrowRight') next = focusedIndex + 1;
+    if(key === 'ArrowUp') next = focusedIndex - cols;
+    if(key === 'ArrowDown') next = focusedIndex + cols;
+    focusCard(next);
+    return;
+  }
 
+  // Enter
+  if(key === 'Enter' || key === 'OK'){
+    e.preventDefault();
+    playChannelByIndex(focusedIndex);
+    return;
+  }
+
+  // Back / Escape / Android back
+  if (key === 'Escape' || key === 'Backspace' || e.keyCode === 4) {
+    if(playerWrap.style.display === 'block'){
+      closePlayerOverlay();
+      e.preventDefault();
+    }
+    return;
+  }
+});
+
+function handleCardKey(e, idx){
+  if(e.key === 'Enter') { playChannelByIndex(idx); }
+}
+
+/* numeric buffer */
+function showNumDial(text){
+  numDial.style.display = 'block';
+  numDial.textContent = text;
+}
+function hideNumDial(){
+  numDial.style.display = 'none';
+  numDial.textContent = '';
+  numericBuffer = '';
+  if(numericTimer){ clearTimeout(numericTimer); numericTimer = null; }
+}
+function processNumericBuffer(){
+  if(!numericBuffer) return hideNumDial();
+  const n = parseInt(numericBuffer, 10);
+  if(!isNaN(n) && n >= 1 && n <= filtered.length){
+    const idx = n - 1;
+    focusCard(idx);
+    playChannelByIndex(idx);
+  } else {
+    numDial.style.background = 'rgba(255,0,0,0.6)';
+    setTimeout(()=>{ numDial.style.background = 'rgba(0,0,0,0.7)'; hideNumDial(); }, 600);
+  }
+  hideNumDial();
+}
+
+/* -------------------------
+   play channel (open player)
+   ------------------------- */
+let shakaPlayer = null;
+
+function playChannelByIndexInternal(idx){
+  const ch = filtered[idx];
+  if(!ch) return;
+  let streamLink = (ch.link||'').trim();
+  if(ch.cookie && /__hdnea__=[^&\s]+/.test(ch.cookie) && !/__hdnea__=[^&\s]+/.test(streamLink)){
+    const m = ch.cookie.match(/__hdnea__=[^&\s]+/);
+    if(m && m[0]) streamLink += (streamLink.includes('?') ? '&' : '?') + m[0];
+  }
+  showPlayerOverlay(streamLink, ch);
+  pushRecent(ch);
+}
+function playChannelByIndex(idx){ playChannelByIndexInternal(idx); }
+
+/* -------------------------
+   Player overlay and history handling
+   ------------------------- */
+const manualBtn = document.getElementById('manualPlayButton');
+
+async function showPlayerOverlay(streamUrl, ch){
+  channelTitle.textContent = ch.name || '';
+  myLogo.src = ch.logo || myLogo.src;
+  playerWrap.style.display = 'block';
+  document.body.style.overflow = 'hidden';
+
+  // push history state so Back closes player and returns to index
+  try{
+    history.pushState({player:'open'}, '', '#player');
+  }catch(e){ /* ignore */ }
+
+  try{ if(shakaPlayer){ await shakaPlayer.destroy(); shakaPlayer = null; } } catch(e){ shakaPlayer = null; }
+
+  shaka.polyfill.installAll();
+  if (!shaka.Player.isBrowserSupported()) {
+    alert('Browser not supported for Shaka Player');
+    return;
+  }
+
+  const player = new shaka.Player(playerVideo);
+  shakaPlayer = player;
+  const container = document.querySelector('.shaka-video-container');
+  const ui = new shaka.ui.Overlay(player, container, playerVideo);
+
+  ui.configure({
+    controlPanelElements: [
+      'play_pause',
+      'time_and_duration',
+      'mute',
+      'volume',
+      'spacer',
+      'captions',
+      'quality',
+      'language',
+      'picture_in_picture',
+      'fullscreen',
+      'overflow_menu'
+    ]
+  });
+
+  if (ch.drmLicense && ch.drmLicense.includes(":")) {
+    const [keyId, key] = ch.drmLicense.split(":").map(s => s.trim());
+    if (keyId && key) {
+      player.configure({ drm: { clearKeys: { [keyId]: key } } });
+    }
+  }
+
+  player.getNetworkingEngine().registerRequestFilter((type, request) => {
+    request.headers['Referer'] = 'https://www.jiotv.com/';
+    request.headers['User-Agent'] = "plaYtv/7.1.5 (Linux;Android 13) ExoPlayerLib/2.11.6";
+    if (ch.cookie) {
+      request.headers['Cookie'] = ch.cookie;
+      if (
+        (type === shaka.net.NetworkingEngine.RequestType.MANIFEST ||
+         type === shaka.net.NetworkingEngine.RequestType.SEGMENT) &&
+        !request.uris[0].includes('__hdnea__=')
+      ) {
+        const separator = request.uris[0].includes('?') ? '&' : '?';
+        request.uris[0] += separator + ch.cookie;
+      }
+    }
+  });
+
+  player.configure({
+    streaming: {
+      lowLatencyMode: true,
+      bufferingGoal: 15,
+      rebufferingGoal: 2,
+      bufferBehind: 15,
+      retryParameters: { timeout: 10000, maxAttempts: 5, baseDelay: 300, backoffFactor: 1.2 },
+      segmentRequestTimeout: 8000,
+      segmentPrefetchLimit: 2,
+      useNativeHlsOnSafari: true
+    },
+    manifest: { retryParameters: { timeout: 8000, maxAttempts: 3 } }
+  });
+
+  const attemptAutoplay = async () => {
+    try {
+      playerVideo.muted = false;
+      await playerVideo.play();
+      return true;
+    } catch (e1) {
+      try {
+        playerVideo.muted = true;
+        await playerVideo.play();
+        return true;
+      } catch (e2) {
+        return false;
+      }
+    }
+  };
+
+  player.addEventListener('error', (event) => {
+    console.error('Shaka Player Error:', event.detail);
+  });
+
+  try {
+    await player.load(streamUrl);
+    const ok = await attemptAutoplay();
+    if(!ok) manualBtn.style.display = 'block'; else manualBtn.style.display = 'none';
+  } catch (err) {
+    console.error('Load error:', err);
+    alert('Failed to load stream');
+  }
+
+  manualBtn.onclick = async ()=>{
+    manualBtn.style.display = 'none';
+    playerVideo.muted = false;
+    try{ await playerVideo.play(); }catch(e){ console.error(e); }
+  };
+}
+
+// Close overlay and ensure history state handled
+closePlayer.addEventListener('click', closePlayerOverlay);
+function closePlayerOverlay(){
+  try{ if(shakaPlayer) shakaPlayer.destroy().catch(()=>{}); }catch(e){}
+  playerVideo.pause();
+  playerWrap.style.display = 'none';
+  document.body.style.overflow = '';
+  // If there is a pushed state, go back so address bar removes #player
+  try{
+    if(history.state && history.state.player === 'open') history.back();
+  }catch(e){}
+}
+
+// When user presses browser Back (popstate), if player open then close it
+window.addEventListener('popstate', (e)=>{
+  if(playerWrap.style.display === 'block'){
+    // close player and prevent navigating away
+    closePlayerOverlay();
+  } else {
+    // if not player, allow normal back (so PC/mobile back goes to previous page)
+    // The user asked: on mobile/pc when back pressed go to index — we are already index.
+  }
+});
+
+/* -------------------------
+   Favorites & Recent (no UI)
+   ------------------------- */
+function renderFavList(){ /* intentionally empty - no side UI */ }
+function renderRecentList(){ /* intentionally empty - no side UI */ }
+
+/* -------------------------
+   init
+   ------------------------- */
+loadChannels();
+
+/* ===========================
+   Voice search integration (improved UI)
+   =========================== */
+(function(){
+  // Feature detect
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition || null;
+  let recognition = null;
+  let listening = false;
+
+  // create toast area
+  function createVoiceToast(){
+    let t = document.getElementById('voiceToast');
+    if(!t){
+      t = document.createElement('div');
+      t.id = 'voiceToast';
+      Object.assign(t.style, {
+        position:'fixed', left:'50%', transform:'translateX(-50%)',
+        bottom:'90px', background:'rgba(0,0,0,0.78)', color:'#fff',
+        padding:'12px 18px', borderRadius:'10px', zIndex:999999, fontSize:'16px', boxShadow:'0 10px 30px rgba(0,0,0,0.6)'
+      });
+      document.body.appendChild(t);
+    }
+    return t;
+  }
+  function showVoiceToast(text){
+    const t = createVoiceToast();
+    t.textContent = text;
+    t.style.display = 'block';
+    clearTimeout(t._hideT);
+    t._hideT = setTimeout(()=> t.style.display='none', 3000);
+  }
+
+  if (SpeechRecognition) {
+    recognition = new SpeechRecognition();
+    recognition.lang = 'en-IN'; // change to 'hi-IN' if you prefer Hindi
+    recognition.interimResults = false;
+    recognition.maxAlternatives = 1;
+    recognition.continuous = false;
+
+    recognition.addEventListener('start', () => {
+      listening = true;
+      voiceBtn.classList.add('listening');
+      voiceLabel.textContent = 'Listening...';
+    });
+
+    recognition.addEventListener('result', (ev) => {
+      const transcript = ev.results[0][0].transcript.trim();
+      console.log('[voice] Recognized:', transcript);
+      showVoiceToast('You said: ' + transcript);
+      findAndPlayByVoice(transcript);
+    });
+
+    recognition.addEventListener('end', () => {
+      listening = false;
+      voiceBtn.classList.remove('listening');
+      voiceLabel.textContent = 'Voice';
+    });
+
+    recognition.addEventListener('error', (e) => {
+      console.warn('[voice] error', e);
+      listening = false;
+      voiceBtn.classList.remove('listening');
+      voiceLabel.textContent = 'Voice';
+      showVoiceToast('Voice error: ' + (e.error || e.message));
+    });
+  } else {
+    console.warn('SpeechRecognition not supported in this browser.');
+    voiceBtn.title = 'Voice not supported in this browser';
+  }
+
+  function toggleRecognition(){
+    if(!recognition){
+      showVoiceToast('Voice not supported in this browser');
+      return;
+    }
+    if(listening){
+      recognition.stop();
+    } else {
+      try {
+        recognition.start();
+      } catch (e) {
+        console.warn('Recognition start failed', e);
+        showVoiceToast('Unable to start voice');
+      }
+    }
+  }
+
+  // Attach to voice button (click / Enter)
+  voiceBtn.addEventListener('click', (ev)=>{
+    ev.preventDefault();
+    toggleRecognition();
+  });
+  voiceBtn.addEventListener('keydown', (ev)=>{
+    if(ev.key === 'Enter' || ev.key === ' ') {
+      ev.preventDefault();
+      toggleRecognition();
+    }
+  });
+
+  // Also try catching remote voice/search key events (works on some TV browsers)
+  window.addEventListener('keydown', (ev) => {
+    const k = ev.key || '';
+    const code = ev.keyCode || 0;
+    if (k === 'Search' || code === 84 || k === 'Voice' || k === 'MediaRecord') {
+      ev.preventDefault();
+      toggleRecognition();
+    }
+  });
+
+  function findAndPlayByVoice(transcript){
+    if(!transcript || !filtered || !filtered.length) {
+      showVoiceToast('No channels available');
+      return;
+    }
+    const q = transcript.toLowerCase();
+
+    // direct substring matches
+    const candidates = filtered.filter(ch => (ch.name || '').toLowerCase().includes(q));
+    if(candidates.length === 1){ playMatchedChannel(candidates[0]); return; }
+    if(candidates.length > 1){
+      const prefix = candidates.find(c => (c.name||'').toLowerCase().startsWith(q));
+      if(prefix){ playMatchedChannel(prefix); return; }
+      playMatchedChannel(candidates[0]); return;
+    }
+
+    // token-wise
+    const tokens = q.split(/\s+/).filter(Boolean);
+    const tokenMatches = filtered.filter(ch => {
+      const name = (ch.name || '').toLowerCase();
+      return tokens.every(t => name.includes(t));
+    });
+    if(tokenMatches.length >= 1){ playMatchedChannel(tokenMatches[0]); return; }
+
+    // fuzzy fallback
+    const scored = filtered.map(ch => ({ ch, score: simpleDistance((ch.name||'').toLowerCase(), q) }))
+                         .sort((a,b)=>a.score-b.score).slice(0,5);
+    if(scored.length && scored[0].score < Math.max(3, q.length * 0.6)){ playMatchedChannel(scored[0].ch); return; }
+
+    showVoiceToast('No matching channel found for: ' + transcript);
+  }
+
+  function playMatchedChannel(ch){
+    showVoiceToast('Playing: ' + (ch.name || 'channel'));
+    const idx = (filtered || []).findIndex(x => x.id === ch.id);
+    if(typeof window.focusCard === 'function') window.focusCard(idx);
+    if(typeof window.playChannelByIndexInternal === 'function') { window.playChannelByIndexInternal(idx); }
+    else if(typeof window.playChannelByIndex === 'function'){ window.playChannelByIndex(idx); }
+    else {
+      const cards = document.querySelectorAll('.card');
+      if(cards && cards[idx]) cards[idx].click();
+    }
+  }
+
+  function simpleDistance(a,b){
+    if(a === b) return 0;
+    const la = a.length, lb = b.length;
+    let dist = Math.abs(la - lb);
+    const common = Math.min(la, lb);
+    for(let i=0;i<common;i++){ if(a[i] !== b[i]) dist++; }
+    return dist;
+  }
+
+  // expose debug
+  window.voiceSearch = { start: ()=>{ if(recognition && !listening) toggleRecognition(); }, stop: ()=>{ if(recognition && listening) toggleRecognition(); }, isSupported: !!SpeechRecognition };
+
+})(); // end voice IIFE
+
+</script>
 </body>
 </html>
