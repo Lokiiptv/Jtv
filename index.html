@@ -13,144 +13,197 @@
       color: #fff;
       margin: 0;
       padding: 15px;
+      font-size: 20px;
     }
 
     h2 {
       text-align: center;
-      margin-bottom: 10px;
-      font-size: 24px;
+      margin-bottom: 18px;
+      font-size: 32px;
     }
 
     .search-container {
       display: flex;
       justify-content: center;
-      margin-bottom: 18px;
+      margin-bottom: 20px;
     }
 
     .search-box {
-      width: 90%;
-      max-width: 420px;
-      padding: 12px 15px;
-      border-radius: 8px;
+      width: 95vw;
+      max-width: 480px;
+      padding: 18px 20px;
+      border-radius: 10px;
       border: none;
-      font-size: 15px;
+      font-size: 20px;
       outline: none;
       background: #1c1c1c;
       color: #fff;
+      margin-bottom: 10px;
     }
 
     .channel-list {
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-      gap: 14px;
+      grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+      gap: 22px;
     }
 
     .channel {
       background: #161616;
-      border-radius: 10px;
-      padding: 12px;
+      border-radius: 14px;
+      padding: 22px 12px;
       text-align: center;
       cursor: pointer;
-      transition: 0.25s;
+      transition: all 0.25s ease;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+      outline: none;
       opacity: 0;
       transform: translateY(10px);
       animation: fadeIn 0.4s forwards;
     }
 
+    .channel:focus {
+      box-shadow: 0 0 0 5px #2196f3;
+      background: #262626;
+      transform: scale(1.08);
+      z-index: 10;
+    }
+
     .channel:hover {
       background: #262626;
-      transform: translateY(-5px) scale(1.03);
+      transform: scale(1.05);
+      box-shadow: 0 4px 15px rgba(33, 150, 243, 0.4);
+    }
+
+    .channel:active {
+      transform: scale(0.98);
     }
 
     .channel img {
-      width: 100%;
-      height: 95px;
+      width: 90%;
+      height: 120px;
       object-fit: contain;
-      border-radius: 6px;
+      border-radius: 8px;
+      margin: 0 auto;
+      display: block;
     }
 
     .channel-name {
-      margin-top: 10px;
-      font-size: 14px;
-      font-weight: 600;
+      margin-top: 14px;
+      font-size: 18px;
+      font-weight: 700;
       color: #eaeaea;
+      word-wrap: break-word;
     }
 
     @keyframes fadeIn {
       to { opacity: 1; transform: translateY(0); }
+    }
+
+    .error-message {
+      color: #ff6b6b;
+      text-align: center;
+      padding: 20px;
+      background: #2a1a1a;
+      border-radius: 10px;
+      margin: 20px;
+    }
+
+    /* Mobile Optimization */
+    @media (max-width: 600px) {
+      body {
+        padding: 10px;
+        font-size: 16px;
+      }
+
+      h2 {
+        font-size: 24px;
+        margin-bottom: 12px;
+      }
+
+      .search-box {
+        font-size: 16px;
+        padding: 14px 16px;
+      }
+
+      .channel-list {
+        grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+        gap: 12px;
+      }
+
+      .channel {
+        padding: 16px 8px;
+      }
+
+      .channel img {
+        height: 96px;
+      }
+
+      .channel-name {
+        font-size: 15px;
+        margin-top: 10px;
+      }
+    }
+
+    /* Large Screen TV Optimization */
+    @media (min-width: 1200px) {
+      body {
+        padding: 30px;
+        font-size: 22px;
+      }
+
+      h2 {
+        font-size: 40px;
+      }
+
+      .channel-list {
+        grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+        gap: 28px;
+      }
+
+      .channel {
+        padding: 28px 14px;
+      }
+
+      .channel img {
+        height: 140px;
+      }
+
+      .channel-name {
+        font-size: 20px;
+      }
     }
   </style>
 
 </head>
 <body>
 
-<h2>📺 JioTV Channels</h2>
+<h2> JioTV Channels</h2>
 
 <div class="search-container">
-  <input id="search" class="search-box" type="text" placeholder="🔍 Search channels...">
+  <input id="search" class="search-box" type="text" placeholder=" Search channels...">
 </div>
 
 <div id="channels" class="channel-list">Loading...</div>
 
 <script>
 document.addEventListener("DOMContentLoaded", function () {
-  const m3uURL = "https://jiotv.diwij76343.workers.dev";
+  const apiURL = "https://jiotv.diwij76343.workers.dev";   // NEW JSON API
   const container = document.getElementById("channels");
   const searchInput = document.getElementById("search");
 
   let channelsData = [];
 
-  fetch(m3uURL)
-    .then(res => res.text())
-    .then(text => {
-      channelsData = parseM3U(text);
-      renderChannels(channelsData);
+  // Fetch JSON
+  fetch(apiURL)
+    .then(res => res.json())
+    .then(json => {
+      channelsData = json;
+      renderChannels(json);
     })
     .catch(err => {
-      console.error("Error loading M3U:", err);
+      console.error("Error loading JSON:", err);
       container.textContent = "Failed to load channels.";
     });
-
-  function parseM3U(text) {
-    const lines = text.split("\n");
-    const list = [];
-    let current = {};
-
-    lines.forEach(line => {
-      line = line.trim();
-
-      if (line.startsWith("#EXTINF")) {
-        const name = line.split(",").pop().trim();
-        const logo = line.match(/tvg-logo="([^"]+)"/)?.[1] || "";
-        current = { name, logo };
-      }
-
-      if (line.startsWith("#KODIPROP:inputstream.adaptive.license_key")) {
-        const key = line.split("=")[1];
-        if (key.includes(":")) {
-          const [keyId, keyVal] = key.split(":");
-          current.keyId = keyId;
-          current.key = keyVal;
-        }
-      }
-
-      if (line.startsWith("#EXTHTTP:")) {
-        const json = line.replace("#EXTHTTP:", "").trim();
-        try {
-          const obj = JSON.parse(json);
-          current.cookie = obj.cookie || "";
-        } catch {}
-      }
-
-      if (line.startsWith("http")) {
-        current.link = line;
-        list.push(current);
-        current = {};
-      }
-    });
-
-    return list;
-  }
 
   function renderChannels(list) {
     container.innerHTML = "";
@@ -172,14 +225,17 @@ document.addEventListener("DOMContentLoaded", function () {
       div.onclick = () => {
         const url = new URL("player.html", window.location.href);
         url.searchParams.set("url", ch.link);
-        if (ch.keyId && ch.key) {
-          url.searchParams.set("keyId", ch.keyId);
-          url.searchParams.set("key", ch.key);
+
+        // DRM clearkey support
+        if (ch.drmLicense && ch.drmLicense.includes(":")) {
+          const [keyId, key] = ch.drmLicense.split(":");
+          url.searchParams.set("keyId", keyId.trim());
+          url.searchParams.set("key", key.trim());
         }
-        if (ch.cookie) {
-          url.searchParams.set("cookie", ch.cookie);
-        }
+
+        if (ch.cookie) url.searchParams.set("cookie", ch.cookie);
         url.searchParams.set("name", ch.name);
+
         window.location.href = url.toString();
       };
 
@@ -187,10 +243,15 @@ document.addEventListener("DOMContentLoaded", function () {
     });
   }
 
+  // Search filter
   searchInput.addEventListener("input", function () {
     const value = this.value.trim().toLowerCase();
     if (!value) return renderChannels(channelsData);
-    renderChannels(channelsData.filter(ch => ch.name.toLowerCase().includes(value)));
+    renderChannels(
+      channelsData.filter(ch =>
+        ch.name.toLowerCase().includes(value)
+      )
+    );
   });
 });
 </script>
